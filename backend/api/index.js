@@ -11,7 +11,7 @@ const app = express();
 // Middleware
 app.use(
   cors({
-    origin: 'https://signup1-two.vercel.app',
+    origin: 'https://signup1-two.vercel.app', // Your frontend URL
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   })
@@ -21,9 +21,9 @@ app.use(express.json());
 
 // Cloudinary Configuration
 cloudinary.config({
-  cloud_name: 'dpxx5upa0',
-  api_key: '149525395734734',
-  api_secret: 'gLkxqYnm44K4fUg7TbF0MKwEu08',
+  cloud_name: 'dpxx5upa0',  // Replace with your Cloudinary cloud name
+  api_key: '149525395734734',  // Replace with your Cloudinary API key
+  api_secret: 'gLkxqYnm44K4fUg7TbF0MKwEu08',  // Replace with your Cloudinary API secret
 });
 
 // MongoDB connection
@@ -44,10 +44,11 @@ const userSchema = new mongoose.Schema({
 // Use mongoose.models.User if already compiled to avoid overwriting
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
-// Image upload setup using multer
-const upload = multer({ dest: 'uploads/' });
+// Multer is not needed for saving files on disk, so we skip it entirely
+const storage = multer.memoryStorage();  // Store files in memory
+const upload = multer({ storage: storage });
 
-// Signup Route with image upload
+// Signup Route with image upload directly to Cloudinary
 app.post('/signup', upload.single('image'), async (req, res) => {
   const { username, email, password, confirmPassword } = req.body;
 
@@ -62,11 +63,19 @@ app.post('/signup', upload.single('image'), async (req, res) => {
   }
 
   try {
-    // Upload image to Cloudinary
+    // Upload image to Cloudinary from memory storage
     let profileImageUrl = null;
     if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path); // Upload image
-      profileImageUrl = result.secure_url; // Get the image URL
+      const result = await cloudinary.uploader.upload_stream(
+        { resource_type: 'auto' }, // Let Cloudinary automatically detect the file type
+        (error, result) => {
+          if (error) {
+            return res.status(500).json({ message: 'Image upload failed' });
+          }
+          profileImageUrl = result.secure_url;
+        }
+      );
+      req.file.stream.pipe(result); // Upload file stream to Cloudinary
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
