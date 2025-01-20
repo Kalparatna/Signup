@@ -1,5 +1,3 @@
-// frontend/src/SignupForm.js
-
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
@@ -43,7 +41,7 @@ const SignupForm = () => {
     data.append('image', image); // Append image
 
     try {
-      const response = await axios.post('signup-henna-pi.vercel.app/signup', data, {
+      const response = await axios.post('https://signup-henna-pi.vercel.app/signup', data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
