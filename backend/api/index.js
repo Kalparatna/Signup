@@ -11,11 +11,12 @@ const app = express();
 // Middleware
 app.use(
   cors({
-    origin: 'http://localhost:3000', // React frontend URL
+    origin: 'https://signup1-two.vercel.app', // Updated frontend URL
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   })
 );
+
 
 app.use(express.json());
 
