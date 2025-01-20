@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+export default LoginForm;  import React, { useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import './SignupForm.css';
@@ -9,11 +9,11 @@ const SignupForm = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    image: null,
+    image: null, // For storing the selected file
   });
 
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [error, setError] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false); // State to show/hide popup
+  const [error, setError] = useState(''); // State to store error messages
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,9 +26,9 @@ const SignupForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     const { username, email, password, confirmPassword, image } = formData;
 
+    // Validate if image is selected
     if (!image) {
       return setError('Please upload an image.');
     }
@@ -38,7 +38,7 @@ const SignupForm = () => {
     data.append('email', email);
     data.append('password', password);
     data.append('confirmPassword', confirmPassword);
-    data.append('image', image);
+    data.append('image', image); // Append image
 
     try {
       const response = await axios.post('https://signup-henna-pi.vercel.app/signup', data, {
@@ -46,19 +46,19 @@ const SignupForm = () => {
       });
 
       if (response.data.success) {
-        setIsSuccess(true);
-        setError('');
+        setIsSuccess(true); // Show success popup
+        setError(''); // Clear any previous error
+
+        // Auto-close the popup after 3 seconds
         setTimeout(() => setIsSuccess(false), 3000);
       }
-      
     } catch (error) {
       setError(error.response?.data?.message || 'An error occurred.');
-      console.error(error); // Log error for debugging
     }
   };
 
   const closePopup = () => {
-    setIsSuccess(false);
+    setIsSuccess(false); // Close the popup
   };
 
   return (
@@ -126,5 +126,3 @@ const SignupForm = () => {
     </div>
   );
 };
-
-export default SignupForm;
