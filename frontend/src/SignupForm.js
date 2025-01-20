@@ -26,7 +26,7 @@ const SignupForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const { username, email, password, confirmPassword, image } = formData;
 
     if (!image) {
@@ -39,6 +39,11 @@ const SignupForm = () => {
     data.append('password', password);
     data.append('confirmPassword', confirmPassword);
     data.append('image', image);
+
+    // Log FormData to check the contents before sending
+    for (let [key, value] of data.entries()) {
+      console.log(key, value);
+    }
 
     try {
       const response = await axios.post('https://signup-henna-pi.vercel.app/signup', data, {
