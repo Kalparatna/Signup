@@ -19,21 +19,21 @@ app.use(
 
 app.use(express.json());
 
-// Cloudinary Configuration (directly hardcoded)
+// Cloudinary Configuration
 cloudinary.config({
   cloud_name: 'dpxx5upa0', // Replace with your Cloudinary cloud name
   api_key: '149525395734734', // Replace with your Cloudinary API key
   api_secret: 'gLkxqYnm44K4fUg7TbF0MKwEu08', // Replace with your Cloudinary API secret
 });
 
-// MongoDB connection (directly hardcoded)
+// MongoDB connection
 const mongoURI = 'mongodb+srv://admin:admin%402023@cluster0.u3djt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 mongoose
   .connect(mongoURI)
   .then(() => console.log('Connected to MongoDB Atlas'))
   .catch((err) => console.error('Connection error:', err));
 
-// Define User Schema
+// Define User Schema and Model (only once to avoid OverwriteModelError)
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
@@ -41,7 +41,8 @@ const userSchema = new mongoose.Schema({
   profileImage: { type: String }, // Store the URL of the uploaded image
 });
 
-const User = mongoose.model('User', userSchema);
+// Use mongoose.models.User if already compiled to avoid overwriting
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 // Image upload setup using multer
 const upload = multer({ dest: 'uploads/' });
@@ -99,7 +100,7 @@ app.post('/login', async (req, res) => {
 
     const token = jwt.sign(
       { userId: user._id, username: user.username },
-      'mySuperSecretKey1234', // JWT secret key directly hardcoded
+      'mySuperSecretKey1234', // JWT secret key
       { expiresIn: '1h' }
     );
     res.status(200).json({ success: true, token });
@@ -109,7 +110,7 @@ app.post('/login', async (req, res) => {
 });
 
 // Listen on port
-const PORT = process.env.PORT || 5000;
+const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
