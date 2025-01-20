@@ -44,15 +44,15 @@ const userSchema = new mongoose.Schema({
 // Use mongoose.models.User if already compiled to avoid overwriting
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
-// Multer is not needed for saving files on disk, so we skip it entirely
-const storage = multer.memoryStorage();  // Store files in memory
-const upload = multer({ storage: storage });
+// Multer configuration for in-memory storage
+const storage = multer.memoryStorage();  
+const upload = multer({ storage });
 
 // Signup Route with image upload directly to Cloudinary
 app.post('/signup', upload.single('image'), async (req, res) => {
   const { username, email, password, confirmPassword } = req.body;
 
-  // Validate password
+  // Validate password complexity
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
   if (!passwordRegex.test(password)) {
     return res.status(400).json({ message: 'Password does not meet complexity requirements.' });
@@ -63,11 +63,12 @@ app.post('/signup', upload.single('image'), async (req, res) => {
   }
 
   try {
-    // Upload image to Cloudinary from memory storage
     let profileImageUrl = null;
+
+    // Upload image to Cloudinary from memory storage
     if (req.file) {
-      const result = await cloudinary.uploader.upload_stream(
-        { resource_type: 'auto' }, // Let Cloudinary automatically detect the file type
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { resource_type: 'auto' },
         (error, result) => {
           if (error) {
             return res.status(500).json({ message: 'Image upload failed' });
@@ -75,7 +76,14 @@ app.post('/signup', upload.single('image'), async (req, res) => {
           profileImageUrl = result.secure_url;
         }
       );
-      req.file.stream.pipe(result); // Upload file stream to Cloudinary
+
+      req.file.stream.pipe(uploadStream); // Correctly pipe the file stream to Cloudinary
+      
+      // Wait for the upload to complete before proceeding
+      await new Promise((resolve, reject) => {
+        uploadStream.on('finish', resolve);
+        uploadStream.on('error', reject);
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -89,9 +97,12 @@ app.post('/signup', upload.single('image'), async (req, res) => {
 
     res.status(201).json({ success: true, message: 'User registered successfully!' });
   } catch (error) {
+    console.error('Signup error:', error); // Log the error for debugging
+
     if (error.code === 11000) {
       return res.status(400).json({ message: 'Username or email already exists.' });
     }
+    
     res.status(500).json({ message: 'Internal server error.' });
   }
 });
@@ -112,8 +123,13 @@ app.post('/login', async (req, res) => {
       'mySuperSecretKey1234', // JWT secret key
       { expiresIn: '1h' }
     );
+    
     res.status(200).json({ success: true, token });
   } catch (error) {
+    console.error('Login error:', error); // Log the error for debugging
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+// Vercel requires exporting the app for serverless functions
+module.exports = app;
