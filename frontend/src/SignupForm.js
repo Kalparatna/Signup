@@ -45,8 +45,6 @@ const SignupForm = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      console.log("Server response:", response); // Log server response
-
       if (response.data.success) {
         setIsSuccess(true);
         setError('');
@@ -54,8 +52,8 @@ const SignupForm = () => {
       }
       
     } catch (error) {
-      console.error("Error during signup:", error);
       setError(error.response?.data?.message || 'An error occurred.');
+      console.error(error); // Log error for debugging
     }
   };
 
