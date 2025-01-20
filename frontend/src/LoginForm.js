@@ -1,5 +1,3 @@
-// frontend/src/LoginForm.js
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -23,7 +21,7 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('signup-henna-pi.vercel.app/login', formData);
+      const response = await axios.post('https://signup-henna-pi.vercel.app/login', formData);
 
       if (response.data.success) {
         // Store the JWT token in localStorage
