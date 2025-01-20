@@ -1,128 +1,135 @@
-export default LoginForm;  import React, { useState } from 'react';
-import axios from 'axios';
-import { Link } from 'react-router-dom';
-import './SignupForm.css';
+const express = require('express');
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const cloudinary = require('cloudinary').v2;
+const multer = require('multer');
 
-const SignupForm = () => {
-  const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    image: null, // For storing the selected file
-  });
+const app = express();
 
-  const [isSuccess, setIsSuccess] = useState(false); // State to show/hide popup
-  const [error, setError] = useState(''); // State to store error messages
+// Middleware
+app.use(
+  cors({
+    origin: 'https://signup1-two.vercel.app', // Your frontend URL
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+  })
+);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
+app.use(express.json());
 
-  const handleFileChange = (e) => {
-    setFormData({ ...formData, image: e.target.files[0] });
-  };
+// Cloudinary Configuration
+cloudinary.config({
+  cloud_name: 'dpxx5upa0',  // Replace with your Cloudinary cloud name
+  api_key: '149525395734734',  // Replace with your Cloudinary API key
+  api_secret: 'gLkxqYnm44K4fUg7TbF0MKwEu08',  // Replace with your Cloudinary API secret
+});
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const { username, email, password, confirmPassword, image } = formData;
+// MongoDB connection
+const mongoURI = 'mongodb+srv://admin:admin%402023@cluster0.u3djt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+mongoose
+  .connect(mongoURI)
+  .then(() => console.log('Connected to MongoDB Atlas'))
+  .catch((err) => console.error('Connection error:', err));
 
-    // Validate if image is selected
-    if (!image) {
-      return setError('Please upload an image.');
-    }
+// Define User Schema and Model (only once to avoid OverwriteModelError)
+const userSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  profileImage: { type: String },
+});
 
-    const data = new FormData();
-    data.append('username', username);
-    data.append('email', email);
-    data.append('password', password);
-    data.append('confirmPassword', confirmPassword);
-    data.append('image', image); // Append image
+// Use mongoose.models.User if already compiled to avoid overwriting
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
-    try {
-      const response = await axios.post('https://signup-henna-pi.vercel.app/signup', data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+// Multer configuration for in-memory storage
+const storage = multer.memoryStorage();  
+const upload = multer({ storage });
+
+// Signup Route with image upload directly to Cloudinary
+app.post('/signup', upload.single('image'), async (req, res) => {
+  const { username, email, password, confirmPassword } = req.body;
+
+  // Validate password complexity
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({ message: 'Password does not meet complexity requirements.' });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ message: 'Passwords do not match.' });
+  }
+
+  try {
+    let profileImageUrl = null;
+
+    // Upload image to Cloudinary from memory storage
+    if (req.file) {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { resource_type: 'auto' },
+        (error, result) => {
+          if (error) {
+            return res.status(500).json({ message: 'Image upload failed' });
+          }
+          profileImageUrl = result.secure_url;
+        }
+      );
+
+      req.file.stream.pipe(uploadStream); // Correctly pipe the file stream to Cloudinary
+      
+      // Wait for the upload to complete before proceeding
+      await new Promise((resolve, reject) => {
+        uploadStream.on('finish', resolve);
+        uploadStream.on('error', reject);
       });
-
-      if (response.data.success) {
-        setIsSuccess(true); // Show success popup
-        setError(''); // Clear any previous error
-
-        // Auto-close the popup after 3 seconds
-        setTimeout(() => setIsSuccess(false), 3000);
-      }
-    } catch (error) {
-      setError(error.response?.data?.message || 'An error occurred.');
     }
-  };
 
-  const closePopup = () => {
-    setIsSuccess(false); // Close the popup
-  };
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({ 
+      username, 
+      email, 
+      password: hashedPassword, 
+      profileImage: profileImageUrl 
+    });
+    await newUser.save();
 
-  return (
-    <div className="main">
-      <input type="checkbox" id="chk" aria-hidden="true" />
-      <div className="signup">
-        <form onSubmit={handleSubmit}>
-          <label htmlFor="chk" aria-hidden="true">Sign Up</label>
-          <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            value={formData.username}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="Confirm Password"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="file"
-            name="image"
-            accept="image/*"
-            onChange={handleFileChange}
-            required
-          />
-          <button type="submit">Signup</button>
-        </form>
-        {error && <p className="error">{error}</p>}
-        <p>
-          <Link to="/login">Already have an account?</Link>
-        </p>
-      </div>
+    res.status(201).json({ success: true, message: 'User registered successfully!' });
+  } catch (error) {
+    console.error('Signup error:', error); // Log the error for debugging
 
-      {/* Popup Modal */}
-      <div className={`popup ${isSuccess ? 'show' : ''}`}>
-        <div className="popup-content">
-          <div className="icon">✔</div>
-          <h2>Signup Successful!</h2>
-          <p>Your account has been created successfully. Please login to continue.</p>
-          <button onClick={closePopup}>Close</button>
-        </div>
-      </div>
-    </div>
-  );
-};
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Username or email already exists.' });
+    }
+    
+    res.status(500).json({ message: 'Internal server error.' });
+  }
+});
+
+// Login Route
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) return res.status(400).json({ message: 'Invalid credentials' });
+
+    const token = jwt.sign(
+      { userId: user._id, username: user.username },
+      'mySuperSecretKey1234', // JWT secret key
+      { expiresIn: '1h' }
+    );
+    
+    res.status(200).json({ success: true, token });
+  } catch (error) {
+    console.error('Login error:', error); // Log the error for debugging
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Vercel requires exporting the app for serverless functions
+module.exports = app;
