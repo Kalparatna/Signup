@@ -51,6 +51,7 @@ const upload = multer({ storage });
 // Signup Route with image upload directly to Cloudinary
 app.post('/signup', upload.single('image'), async (req, res) => {
   const { username, email, password, confirmPassword } = req.body;
+  console.log("Received signup request:", { username, email, password, confirmPassword });
 
   // Validate password complexity
   const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
@@ -65,21 +66,22 @@ app.post('/signup', upload.single('image'), async (req, res) => {
   try {
     let profileImageUrl = null;
 
-    // Upload image to Cloudinary from memory storage
     if (req.file) {
+      console.log("Uploading image to Cloudinary...");
       const uploadStream = cloudinary.uploader.upload_stream(
         { resource_type: 'auto' },
         (error, result) => {
           if (error) {
+            console.error("Error uploading image:", error);
             return res.status(500).json({ message: 'Image upload failed' });
           }
           profileImageUrl = result.secure_url;
+          console.log("Image uploaded successfully:", profileImageUrl);
         }
       );
 
-      req.file.stream.pipe(uploadStream); // Correctly pipe the file stream to Cloudinary
-      
-      // Wait for the upload to complete before proceeding
+      req.file.stream.pipe(uploadStream);
+
       await new Promise((resolve, reject) => {
         uploadStream.on('finish', resolve);
         uploadStream.on('error', reject);
@@ -93,6 +95,8 @@ app.post('/signup', upload.single('image'), async (req, res) => {
       password: hashedPassword, 
       profileImage: profileImageUrl 
     });
+
+    console.log("Saving user to database...");
     await newUser.save();
 
     res.status(201).json({ success: true, message: 'User registered successfully!' });
