@@ -23,7 +23,7 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/login', formData);
+      const response = await axios.post('signup-henna-pi.vercel.app/login', formData);
 
       if (response.data.success) {
         // Store the JWT token in localStorage
