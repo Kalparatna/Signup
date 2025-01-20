@@ -26,7 +26,7 @@ const SignupForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    
     const { username, email, password, confirmPassword, image } = formData;
 
     if (!image) {
@@ -40,15 +40,12 @@ const SignupForm = () => {
     data.append('confirmPassword', confirmPassword);
     data.append('image', image);
 
-    // Log FormData to check the contents before sending
-    for (let [key, value] of data.entries()) {
-      console.log(key, value);
-    }
-
     try {
       const response = await axios.post('https://signup-henna-pi.vercel.app/signup', data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+
+      console.log("Server response:", response); // Log server response
 
       if (response.data.success) {
         setIsSuccess(true);
@@ -57,8 +54,8 @@ const SignupForm = () => {
       }
       
     } catch (error) {
+      console.error("Error during signup:", error);
       setError(error.response?.data?.message || 'An error occurred.');
-      console.error(error); // Log error for debugging
     }
   };
 
