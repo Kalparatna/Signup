@@ -71,11 +71,9 @@ app.post('/signup', upload.single('image'), async (req, res) => {
         { resource_type: 'auto' },
         (error, result) => {
           if (error) {
-            console.error('Error uploading image:', error); // Log error for debugging
-            return res.status(500).json({ message: 'Image upload failed', details: error.message });
+            return res.status(500).json({ message: 'Image upload failed' });
           }
           profileImageUrl = result.secure_url;
-          console.log('Image uploaded successfully:', profileImageUrl);
         }
       );
 
@@ -99,13 +97,13 @@ app.post('/signup', upload.single('image'), async (req, res) => {
 
     res.status(201).json({ success: true, message: 'User registered successfully!' });
   } catch (error) {
-    console.error('Error in signup process:', error); // Log error for debugging
+    console.error('Signup error:', error); // Log the error for debugging
 
     if (error.code === 11000) {
       return res.status(400).json({ message: 'Username or email already exists.' });
     }
     
-    res.status(500).json({ message: 'Internal server error.', details: error.message });
+    res.status(500).json({ message: 'Internal server error.' });
   }
 });
 
@@ -128,8 +126,8 @@ app.post('/login', async (req, res) => {
     
     res.status(200).json({ success: true, token });
   } catch (error) {
-    console.error('Login error:', error); // Log error for debugging
-    res.status(500).json({ message: 'Internal server error', details: error.message });
+    console.error('Login error:', error); // Log the error for debugging
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
