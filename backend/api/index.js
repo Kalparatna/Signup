@@ -21,9 +21,9 @@ app.use(express.json());
 
 // Cloudinary Configuration
 cloudinary.config({
-  cloud_name: 'dpxx5upa0',  // Replace with your Cloudinary cloud name
-  api_key: '149525395734734',  // Replace with your Cloudinary API key
-  api_secret: 'gLkxqYnm44K4fUg7TbF0MKwEu08',  // Replace with your Cloudinary API secret
+  cloud_name: 'dpxx5upa0',  
+  api_key: '149525395734734',  
+  api_secret: 'gLkxqYnm44K4fUg7TbF0MKwEu08',  
 });
 
 // MongoDB connection
