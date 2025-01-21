@@ -67,24 +67,16 @@ app.post('/signup', upload.single('image'), async (req, res) => {
 
     // Upload image to Cloudinary from memory storage
     if (req.file) {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { resource_type: 'auto' },
-        (error, result) => {
-          if (error) {
-            return res.status(500).json({ message: 'Image upload failed' });
-          }
-          profileImageUrl = result.secure_url;
-        }
-      );
+  try {
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      resource_type: 'auto',
+    });
+    profileImageUrl = result.secure_url;
+  } catch (error) {
+    return res.status(500).json({ message: 'Image upload failed', error: error.message });
+  }
+}
 
-      req.file.stream.pipe(uploadStream); // Correctly pipe the file stream to Cloudinary
-      
-      // Wait for the upload to complete before proceeding
-      await new Promise((resolve, reject) => {
-        uploadStream.on('finish', resolve);
-        uploadStream.on('error', reject);
-      });
-    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({ 
