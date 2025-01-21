@@ -65,17 +65,22 @@ app.post('/signup', upload.single('image'), async (req, res) => {
   try {
     let profileImageUrl = null;
 
-    // Upload image to Cloudinary from memory storage
-    if (req.file) {
+   if (req.file) {
   try {
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      resource_type: 'auto',
-    });
-    profileImageUrl = result.secure_url;
+    const result = await cloudinary.uploader.upload_stream(
+      { resource_type: 'auto' },
+      (error, result) => {
+        if (error) {
+          return res.status(500).json({ message: 'Image upload failed', error: error.message });
+        }
+        profileImageUrl = result.secure_url;
+      }
+    ).end(req.file.buffer);
   } catch (error) {
     return res.status(500).json({ message: 'Image upload failed', error: error.message });
   }
 }
+
 
 
     const hashedPassword = await bcrypt.hash(password, 10);
