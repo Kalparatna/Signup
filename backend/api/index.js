@@ -33,7 +33,7 @@ mongoose
   .then(() => console.log('Connected to MongoDB Atlas'))
   .catch((err) => console.error('Connection error:', err));
 
-// Define User Schema and Model (only once to avoid OverwriteModelError)
+// Define User Schema and Model
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
@@ -45,7 +45,7 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 
 // Multer configuration for in-memory storage
-const storage = multer.memoryStorage();  
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // Signup Route with image upload directly to Cloudinary
@@ -65,41 +65,47 @@ app.post('/signup', upload.single('image'), async (req, res) => {
   try {
     let profileImageUrl = null;
 
-   if (req.file) {
-  try {
-    const result = await cloudinary.uploader.upload_stream(
-      { resource_type: 'auto' },
-      (error, result) => {
-        if (error) {
-          return res.status(500).json({ message: 'Image upload failed', error: error.message });
-        }
+    // Upload image to Cloudinary from memory storage
+    if (req.file) {
+      try {
+        const result = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            { resource_type: 'auto' },
+            (error, result) => {
+              if (error) {
+                reject(new Error('Image upload failed: ' + error.message));
+              } else {
+                resolve(result);
+              }
+            }
+          );
+          uploadStream.end(req.file.buffer);
+        });
+
         profileImageUrl = result.secure_url;
+      } catch (error) {
+        return res.status(500).json({ message: 'Image upload failed', error: error.message });
       }
-    ).end(req.file.buffer);
-  } catch (error) {
-    return res.status(500).json({ message: 'Image upload failed', error: error.message });
-  }
-}
-
-
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ 
-      username, 
-      email, 
-      password: hashedPassword, 
-      profileImage: profileImageUrl 
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword,
+      profileImage: profileImageUrl,
     });
+
     await newUser.save();
 
     res.status(201).json({ success: true, message: 'User registered successfully!' });
   } catch (error) {
-    console.error('Signup error:', error); // Log the error for debugging
+    console.error('Signup error:', error);
 
     if (error.code === 11000) {
       return res.status(400).json({ message: 'Username or email already exists.' });
     }
-    
+
     res.status(500).json({ message: 'Internal server error.' });
   }
 });
@@ -120,11 +126,11 @@ app.post('/login', async (req, res) => {
       'mySuperSecretKey1234', // JWT secret key
       { expiresIn: '1h' }
     );
-    
+
     res.status(200).json({ success: true, token });
   } catch (error) {
-    console.error('Login error:', error); // Log the error for debugging
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Internal server error.' });
   }
 });
 
